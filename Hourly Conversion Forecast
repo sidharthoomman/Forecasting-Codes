@@ -1,0 +1,68 @@
+# A linear regression model that was used to forecast for hour conversion - this became the basis for doing anomaly detection at a Fintech 
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.pipeline import Pipeline
+
+# Generate synthetic data for demonstration purposes
+data_size = 10000
+data = pd.DataFrame({
+    'product': np.random.choice(['A', 'B', 'C', 'D'], size=data_size),
+    'merchant': np.random.choice(['X', 'Y', 'Z'], size=data_size),
+    'day': np.random.choice(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], size=data_size),
+    'hour': np.random.randint(0, 24, size=data_size),
+    'minute': np.random.randint(0, 60, size=data_size),
+    'user_type': np.random.choice(['new', 'returning'], size=data_size),
+    'conversion': np.random.rand(data_size)  # Target variable as a continuous value
+})
+
+# Feature Engineering
+X = data.drop('conversion', axis=1)
+y = data['conversion']
+
+# One-Hot Encoding for categorical features
+categorical_features = ['product', 'merchant', 'day', 'user_type']
+X_encoded = pd.get_dummies(X, columns=categorical_features, drop_first=True)
+
+# Split data into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=0.2, random_state=42)
+
+# Model: Linear Regression
+# Reason for choosing Linear Regression:
+# 1. It is simple and interpretable.
+# 2. Works well for predicting continuous outcomes.
+# 3. Provides insights into the linear relationship between features and the target variable.
+
+model = LinearRegression()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Test the model
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+# Output results
+print("Mean Squared Error:", mse)
+print("R-squared:", r2)
+
+# Check if R-squared goal is met
+if r2 >= 0.85:
+    print("The model achieved the desired accuracy.")
+else:
+    print("The model did not achieve the desired accuracy. Consider feature engineering or trying other models.")
+
+# Feature Importance (Coefficients)
+feature_importances = pd.DataFrame({
+    'Feature': X_encoded.columns,
+    'Coefficient': model.coef_
+}).sort_values(by='Coefficient', ascending=False)
+
+print("Top 10 Important Features:\n", feature_importances.head(10))
