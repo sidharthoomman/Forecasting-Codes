@@ -1,0 +1,95 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Example vending machine data
+data_size = 1000
+data = pd.DataFrame({
+    'sku_count': np.random.randint(10, 100, size=data_size),  # Number of SKUs sold
+    'frequency': np.random.randint(1, 500, size=data_size),   # Frequency of transactions
+    'location_type': np.random.choice(['hotel', 'gas_station', 'office', 'school'], size=data_size),
+    'installment_type': np.random.choice(['indoor', 'outdoor'], size=data_size),
+    'avg_price': np.random.uniform(0.5, 5.0, size=data_size), # Average price per transaction
+    **{f'sku_{i}': np.random.randint(0, 50, size=data_size) for i in range(1, 21)}  # 20 SKU data
+})
+
+# One-Hot Encoding for categorical features
+categorical_features = ['location_type', 'installment_type']
+data_encoded = pd.get_dummies(data, columns=categorical_features, drop_first=True)
+
+# Scale the data
+scaler = StandardScaler()
+data_scaled = scaler.fit_transform(data_encoded)
+
+# Use KMeans Clustering
+# Determine the optimal number of clusters using the elbow method
+sse = []
+for k in range(1, 11):
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(data_scaled)
+    sse.append(kmeans.inertia_)
+
+# Plot the elbow curve
+plt.figure()
+plt.plot(range(1, 11), sse, marker='o')
+plt.xlabel('Number of Clusters')
+plt.ylabel('Sum of Squared Errors (SSE)')
+plt.title('Elbow Method for Optimal k')
+plt.show()
+
+# Fit the KMeans model with the optimal number of clusters (e.g., k=3 based on elbow curve)
+kmeans = KMeans(n_clusters=3, random_state=42)
+kmeans.fit(data_scaled)
+data['cluster'] = kmeans.labels_
+
+# Analyze and visualize the clusters
+cluster_summary = data.groupby('cluster').mean()
+
+import ace_tools as tools
+tools.display_dataframe_to_user(name="Vending Machine Cluster Summary", dataframe=cluster_summary)
+
+# Display sample data with cluster assignments
+sample_data = data.sample(10)
+tools.display_dataframe_to_user(name="Sample Vending Machine Cluster Assignments", dataframe=sample_data)
+
+# Visualization 1: Distribution of SKUs by Cluster
+plt.figure()
+sns.boxplot(x='cluster', y='sku_count', data=data)
+plt.title('Distribution of SKU Count by Cluster')
+plt.xlabel('Cluster')
+plt.ylabel('SKU Count')
+plt.show()
+
+# Visualization 2: Distribution of Frequency by Cluster
+plt.figure()
+sns.boxplot(x='cluster', y='frequency', data=data)
+plt.title('Distribution of Frequency by Cluster')
+plt.xlabel('Cluster')
+plt.ylabel('Frequency')
+plt.show()
+
+# Visualization 3: Frequency vs SKU Count by Cluster
+plt.figure()
+sns.scatterplot(x='sku_count', y='frequency', hue='cluster', data=data)
+plt.title('Frequency vs SKU Count by Cluster')
+plt.xlabel('SKU Count')
+plt.ylabel('Frequency')
+plt.legend(title='Cluster')
+plt.show()
+
+# Visualization 4: Heatmap of Cluster Averages
+plt.figure()
+sns.heatmap(cluster_summary.T, annot=True, cmap='coolwarm')
+plt.title('Cluster Averages Heatmap')
+plt.show()
+
+# Visualization 5: Count of Vending Machines per Cluster
+plt.figure()
+data['cluster'].value_counts().plot(kind='bar')
+plt.title('Count of Vending Machines per Cluster')
+plt.xlabel('Cluster')
+plt.ylabel('Count')
+plt.show()
