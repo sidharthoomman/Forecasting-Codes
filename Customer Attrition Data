@@ -1,0 +1,56 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import LabelEncoder
+
+# Example customer survey data for telecom client
+data_size = 1000
+np.random.seed(42)
+data = pd.DataFrame({
+    'CustomerID': range(1, data_size + 1),
+    'Age': np.random.randint(18, 70, size=data_size),
+    'Tenure': np.random.randint(1, 72, size=data_size),
+    'MonthlyCharges': np.random.uniform(20, 120, size=data_size),
+    'TotalCharges': lambda x: x['Tenure'] * x['MonthlyCharges'],
+    'ContractType': np.random.choice(['Month-to-Month', 'One Year', 'Two Year'], size=data_size),
+    'PaymentMethod': np.random.choice(['Electronic Check', 'Mailed Check', 'Bank Transfer', 'Credit Card'], size=data_size),
+    'InternetService': np.random.choice(['DSL', 'Fiber Optic', 'No'], size=data_size),
+    'Churn': np.random.choice(['Yes', 'No'], size=data_size, p=[0.3, 0.7])
+})
+
+# Preprocessing
+le = LabelEncoder()
+data['ContractType'] = le.fit_transform(data['ContractType'])
+data['PaymentMethod'] = le.fit_transform(data['PaymentMethod'])
+data['InternetService'] = le.fit_transform(data['InternetService'])
+data['Churn'] = le.fit_transform(data['Churn'])  # Target variable
+
+# Features and target
+X = data.drop(columns=['CustomerID', 'Churn'])
+y = data['Churn']
+
+# Split the dataset
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Model training
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Model evaluation
+y_pred = model.predict(X_test)
+print("Classification Report:\n", classification_report(y_test, y_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+# Feature importance
+feature_importance = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': model.feature_importances_
+}).sort_values(by='Importance', ascending=False)
+
+import ace_tools as tools
+tools.display_dataframe_to_user(name="Feature Importance", dataframe=feature_importance)
+
+# Display processed data for review
+tools.display_dataframe_to_user(name="Processed Customer Data", dataframe=data.head(10))
